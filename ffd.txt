@@ -1,0 +1,102 @@
+ **Role:**
+ You are a senior machine-learning engineer specializing in **video understanding of screen recordings** and **workflow extraction from UI interactions**.
+
+ **Project Goal:**
+ Design and implement a **video classification system** that analyzes **Windows screen-recording videos**, split into **5-second clips (50 frames each)**, and predicts **user actions and application context per clip**, enabling downstream **workflow reconstruction**.
+
+ **Dataset Description:**
+
+ * Input videos are 20-30 minutes **screen recordings**, not natural videos.
+ * Each video is divided into 5 second chunks. 
+ * Dataset file structure:
+  /data
+      -/videos_001
+         -annotations.csv
+         -/chunks
+           -chunk_001.mp4
+           -chunk_002.mp4
+      -/videos_002
+         -annotations.csv
+         -/chunks
+           -chunk_001.mp4
+           -chunk_002.mp4  
+ * Each clip contains **50 RGB frames** sampled uniformly.
+ * Each clip has annotations in CSV format:
+
+   ```
+   filename, action, target_app
+   chunk_010.mp4, user:typing, vscode
+   chunk_011.mp4, background:idle,
+   ```
+ * Missing `target_app` should be treated as `"none"`.
+
+ **Labeling Requirements:**
+
+ * Use **multi-label / multi-head prediction**, not a single combined class.
+ * Predict **two outputs per clip**:
+
+   1. **Action** (e.g., typing, scrolling, app:switch, idle, reading)
+   2. **Application context** (e.g., vscode, browser, terminal, none)
+
+ **Model Architecture Requirements:**
+
+ * Prefer a **Transformer-based video model** (e.g., **TimeSformer with divided space-time attention**) because UI understanding requires long-range temporal context.
+ * Use pretrained weights and fine-tune on the dataset.
+ * Input shape: `50 × 112 × 112 × 3`.
+ * CUDA-enabled training is required.
+
+ **Training Strategy:**
+
+ * Handle **severe class imbalance** using **class-weighted loss**.
+ * Use **separate weighted cross-entropy losses** for action and app heads.
+ * Support **mixed-precision (fp16)** training.
+ * Split dataset by **recording**, not by clip (to avoid data leakage).
+
+ **Evaluation & Metrics:**
+ For both action and app predictions, report:
+
+ * Accuracy
+ * Precision
+ * Recall
+ * F1-score
+ * Per-class recall
+ * Mean confidence score (softmax probability)
+
+ **Temporal Consistency Requirements:**
+
+ * Implement **temporal smoothing across consecutive clips** using:
+
+   * Sliding window probability averaging (±1 or ±2 clips)
+   * Majority-vote fallback for stability
+ * The goal is to prevent label flickering and produce clean workflows.
+
+ **Output Format (per clip):**
+
+ ```json
+ {
+   "chunk_id": "chunk_010",
+   "action": "user:typing",
+   "action_conf": 0.94,
+   "app": "vscode",
+   "app_conf": 0.91
+ }
+ ```
+
+ **Downstream Usage Context:**
+
+ * Outputs will be consumed by a **rule-guided LLM** that reconstructs user workflows.
+ * Predictions must be **confidence-aware, stable, and interpretable**.
+
+ **Explicit Constraints:**
+
+ * Do NOT use frame-only models.
+ * Do NOT treat each frame independently.
+ * Do NOT collapse action + app into a single mega-class.
+ * Do NOT include video chunking or workflow LLM implementation.
+
+ **Deliverables Expected from You:**
+ * The whole code base for the pipeline file by file with the file structure.
+ * Provide clean, production-ready Python code implementing the above, with clear modular structure and correct use of PyTorch and torchvision (or equivalent supported libraries).
+
+ **Primary Objective:**
+ Maximize **workflow-level correctness**, not just per-clip accuracy.

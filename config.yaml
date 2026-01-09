@@ -1,0 +1,18 @@
+data:
+  recordings_dir: "data/recordings"
+  chunks_dir: "data/46"
+  annotations_path: "data/annotations.csv"
+  output_dir: "outputs"
+
+training:
+  model_name: "MCG-NJU/videomae-base"
+  num_frames: 16
+  batch_size: 16
+  epochs: 10
+  learning_rate: 3e-4
+  output_model_dir: "models/videomae-screen"
+
+inference:
+  chunk_duration_sec: 5
+  llm_provider: "openai"  
+  llm_model: "gpt-4o-mini" 
