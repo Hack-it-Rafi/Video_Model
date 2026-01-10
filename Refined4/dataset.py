@@ -10,15 +10,17 @@ import torchvision.io as io
 import torchvision.transforms as transforms
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
+import random
 
 from config import DATA_ROOT
 
 class VideoDataset(Dataset):
-    def __init__(self, data_df, root_dir, transform=None, num_frames=16):
+    def __init__(self, data_df, root_dir, transform=None, num_frames=16, augment=False):
         self.data_df = data_df
         self.root_dir = root_dir
         self.transform = transform
         self.num_frames = num_frames
+        self.augment = augment
 
     def __len__(self):
         return len(self.data_df)
@@ -31,8 +33,14 @@ class VideoDataset(Dataset):
         # Sample exactly num_frames frames uniformly
         total_frames = video.shape[0]
         if total_frames >= self.num_frames:
-            # Sample uniformly
-            indices = torch.linspace(0, total_frames - 1, self.num_frames).long()
+            # Add temporal jittering during training
+            if self.augment:
+                # Randomly sample a start point within a small range
+                max_start = max(0, total_frames - self.num_frames)
+                start_idx = random.randint(0, min(max_start, 5))  # Small temporal jitter
+                indices = torch.linspace(start_idx, total_frames - 1, self.num_frames).long()
+            else:
+                indices = torch.linspace(0, total_frames - 1, self.num_frames).long()
             video = video[indices]
         else:
             # Repeat frames if video is too short
@@ -61,10 +69,20 @@ class VideoDataset(Dataset):
         return video, action_label, app_label, row['chunk_id'], row['video_id']
 
 def get_transforms(train=True):
-    return transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.Normalize(mean=[0.45, 0.45, 0.45], std=[0.225, 0.225, 0.225]),
-    ])
+    if train:
+        # Add data augmentation for training
+        return transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.RandomCrop((224, 224)),
+            transforms.RandomHorizontalFlip(p=0.3),
+            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
+            transforms.Normalize(mean=[0.45, 0.45, 0.45], std=[0.225, 0.225, 0.225]),
+        ])
+    else:
+        return transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.Normalize(mean=[0.45, 0.45, 0.45], std=[0.225, 0.225, 0.225]),
+        ])
 
 def load_dataset():
     all_data = []
@@ -102,14 +120,26 @@ def load_dataset():
     train_df = full_df[full_df['video_id'].isin(train_vids)]
     test_df = full_df[full_df['video_id'].isin(test_vids)]
     
-    train_dataset = VideoDataset(train_df, DATA_ROOT, transform=get_transforms(train=True))
-    test_dataset = VideoDataset(test_df, DATA_ROOT, transform=get_transforms(train=False))
+    # Print class distribution
+    print(f"\n=== Dataset Statistics ===")
+    print(f"Total samples: {len(full_df)}")
+    print(f"Train samples: {len(train_df)}")
+    print(f"Test samples: {len(test_df)}")
+    print(f"\nAction classes: {num_action_classes}")
+    print(f"App classes: {num_app_classes}")
+    print(f"\nTrain action distribution:")
+    print(train_df['action'].value_counts().head(10))
+    print(f"\nTrain app distribution:")
+    print(train_df['target_app'].value_counts())
+    
+    train_dataset = VideoDataset(train_df, DATA_ROOT, transform=get_transforms(train=True), augment=True)
+    test_dataset = VideoDataset(test_df, DATA_ROOT, transform=get_transforms(train=False), augment=False)
     
     return train_dataset, test_dataset, action_encoder, app_encoder, train_df, test_df, num_action_classes, num_app_classes
 
 def get_dataloaders(train_dataset, test_dataset, batch_size):
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4, pin_memory=True)
     return train_loader, test_loader
 
 def compute_class_weights(df, num_classes, label_col):
@@ -119,8 +149,14 @@ def compute_class_weights(df, num_classes, label_col):
     # Get class counts for classes that appear in the data
     class_counts = df[label_col].value_counts()
     
-    # Compute weights only for classes that appear in the data
+    # Compute weights with sqrt to avoid extreme weights
+    total = len(df)
     for class_id, count in class_counts.items():
-        class_weights[class_id] = len(df) / (num_classes * count)
+        # Use sqrt to dampen the effect of extreme imbalance
+        raw_weight = total / (num_classes * count)
+        class_weights[class_id] = raw_weight ** 0.5
+    
+    # Normalize weights
+    class_weights = class_weights / class_weights.mean()
     
     return class_weights

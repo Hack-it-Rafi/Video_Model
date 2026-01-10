@@ -18,11 +18,28 @@ class VideoClassifier(nn.Module):
         in_features = self.backbone.head[1].in_features
         self.backbone.head = nn.Identity()  # Remove original head
         
-        self.action_head = nn.Linear(in_features, num_action_classes)
-        self.app_head = nn.Linear(in_features, num_app_classes)
+        # Add dropout and more sophisticated heads
+        self.dropout = nn.Dropout(0.3)
+        
+        # Action head with intermediate layer
+        self.action_head = nn.Sequential(
+            nn.Linear(in_features, 512),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(512, num_action_classes)
+        )
+        
+        # App head with intermediate layer
+        self.app_head = nn.Sequential(
+            nn.Linear(in_features, 256),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(256, num_app_classes)
+        )
 
     def forward(self, x):
         features = self.backbone(x)
+        features = self.dropout(features)
         action_logits = self.action_head(features)
         app_logits = self.app_head(features)
         return action_logits, app_logits

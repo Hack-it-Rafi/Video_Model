@@ -20,14 +20,19 @@ def main(mode='train'):
     action_weights = compute_class_weights(train_df, num_action_classes, 'action_label')
     app_weights = compute_class_weights(train_df, num_app_classes, 'app_label')
     
+    print(f"\n=== Class Weights ===")
+    print(f"Action weights (top 5): {action_weights.topk(5)}")
+    print(f"App weights: {app_weights}")
+    
     model = VideoClassifier(num_action_classes, num_app_classes).to(DEVICE)
     
     if mode == 'train':
-        train_model(model, train_loader, test_loader, action_weights, app_weights, train_df)
+        train_model(model, train_loader, test_loader, action_weights, app_weights, train_df, action_encoder, app_encoder)
     
     load_checkpoint(model, 'model.pth')  # Load for eval/infer
     
     if mode == 'evaluate':
+        print("\n=== Final Evaluation on Test Set ===")
         metrics, _, _, _, _, _, _ = evaluate(model, test_loader, action_encoder, app_encoder, is_test=True)
     
     if mode == 'infer':
@@ -47,6 +52,7 @@ def main(mode='train'):
         
         with open('predictions.json', 'w') as f:
             json.dump(outputs, f, indent=2)
+        print(f"Saved {len(outputs)} predictions to predictions.json")
 
 if __name__ == '__main__':
     mode = sys.argv[1] if len(sys.argv) > 1 else 'train'
