@@ -1,0 +1,17 @@
+project:
+num_frames: 50
+img_size: 112
+batch_size: 4
+epochs: 20
+lr: 3e-4
+num_workers: 4
+mixed_precision: true
+
+
+labels:
+actions: [user:typing, scrolling, app:switch, idle, reading]
+apps: [vscode, browser, terminal, none]
+
+
+smoothing:
+window: 2 
