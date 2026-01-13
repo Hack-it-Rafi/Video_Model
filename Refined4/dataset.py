@@ -12,10 +12,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import random
 
-from config import DATA_ROOT
+from config import DATA_ROOT, NUM_FRAMES
 
 class VideoDataset(Dataset):
-    def __init__(self, data_df, root_dir, transform=None, num_frames=16, augment=False):
+    def __init__(self, data_df, root_dir, transform=None, num_frames=NUM_FRAMES, augment=False):
         self.data_df = data_df
         self.root_dir = root_dir
         self.transform = transform
@@ -37,8 +37,8 @@ class VideoDataset(Dataset):
             if self.augment:
                 # Randomly sample a start point within a small range
                 max_start = max(0, total_frames - self.num_frames)
-                start_idx = random.randint(0, min(max_start, 5))  # Small temporal jitter
-                indices = torch.linspace(start_idx, total_frames - 1, self.num_frames).long()
+                start_idx = random.randint(0, min(max_start, 3))  # Small temporal jitter
+                indices = torch.linspace(start_idx, min(start_idx + self.num_frames - 1, total_frames - 1), self.num_frames).long()
             else:
                 indices = torch.linspace(0, total_frames - 1, self.num_frames).long()
             video = video[indices]
@@ -59,9 +59,9 @@ class VideoDataset(Dataset):
                 frame = self.transform(frame)
                 frames.append(frame)
             video = torch.stack(frames)  # (T, C, H, W)
-            video = video.permute(1, 0, 2, 3)  # (C, T, H, W)
+            # VideoMAE expects (T, C, H, W) format - no permutation needed
         else:
-            video = video.permute(3, 0, 1, 2)  # (C, T, H, W)
+            video = video.permute(0, 3, 1, 2)  # (T, C, H, W)
         
         action_label = row['action_label']
         app_label = row['app_label']
@@ -76,12 +76,12 @@ def get_transforms(train=True):
             transforms.RandomCrop((224, 224)),
             transforms.RandomHorizontalFlip(p=0.3),
             transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.1),
-            transforms.Normalize(mean=[0.45, 0.45, 0.45], std=[0.225, 0.225, 0.225]),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # ImageNet stats
         ])
     else:
         return transforms.Compose([
             transforms.Resize((224, 224)),
-            transforms.Normalize(mean=[0.45, 0.45, 0.45], std=[0.225, 0.225, 0.225]),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # ImageNet stats
         ])
 
 def load_dataset():

@@ -1,8 +1,6 @@
-# project/trainer.py
-
 import torch
 import torch.nn as nn
-from torch.cuda.amp import GradScaler, autocast
+from torch.amp import GradScaler, autocast
 from config import (DEVICE, MIXED_PRECISION, LEARNING_RATE, WEIGHT_DECAY, EPOCHS,
                     ACTION_LOSS_WEIGHT, APP_LOSS_WEIGHT, LABEL_SMOOTHING, 
                     MAX_GRAD_NORM, LR_SCHEDULER, WARMUP_EPOCHS, PATIENCE)
@@ -27,7 +25,7 @@ def train_epoch(model, train_loader, action_weights, app_weights, optimizer, sch
         optimizer.zero_grad()
         
         if MIXED_PRECISION:
-            with autocast():
+            with autocast(device_type='cuda'):
                 action_logits, app_logits = model(videos)
                 action_loss = action_criterion(action_logits, action_labels)
                 app_loss = app_criterion(app_logits, app_labels)

@@ -5,16 +5,18 @@ import os
 DATA_ROOT = os.path.join(os.path.dirname(__file__), 'data')
 
 # Model config
-MODEL_NAME = 'mvit_v1_b'  # From torchvision, transformer-based video model
+MODEL_NAME = 'videomae'  # Using VideoMAE instead of MVIT
+MODEL_VARIANT = 'MCG-NJU/videomae-base'  # Correct model identifier on HuggingFace
+NUM_FRAMES = 16  # VideoMAE-base is pretrained with 16 frames
 NUM_ACTION_CLASSES = None  # To be set dynamically
 NUM_APP_CLASSES = None     # To be set dynamically
 PRETRAINED = True
 
 # Training config
-BATCH_SIZE = 4  # Increased from 2
-EPOCHS = 20  # Increased from 10
-LEARNING_RATE = 5e-5  # Reduced for more stable training
-WEIGHT_DECAY = 1e-3  # Increased regularization
+BATCH_SIZE = 4  # Increased since we're using 16 frames instead of 50
+EPOCHS = 20
+LEARNING_RATE = 5e-5
+WEIGHT_DECAY = 1e-3
 MIXED_PRECISION = True
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 

@@ -1,5 +1,3 @@
-# project/utils.py
-
 import torch
 import os
 
