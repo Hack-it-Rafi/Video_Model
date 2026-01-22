@@ -4,6 +4,9 @@ import os
 # Data paths
 DATA_ROOT = os.path.join(os.path.dirname(__file__), 'data')
 
+# Video config
+NUM_FRAMES = 16  # Sample to 16 frames to match MViT positional encoding (from 3-second ~30 frame videos)
+
 # Model config
 MODEL_NAME = 'mvit_v1_b'  # From torchvision, transformer-based video model
 NUM_ACTION_CLASSES = None  # To be set dynamically
@@ -11,11 +14,11 @@ NUM_APP_CLASSES = None     # To be set dynamically
 PRETRAINED = True
 
 # Training config
-BATCH_SIZE = 4  # Increased from 2
+BATCH_SIZE = 2  # Reduced to 1 to avoid CUDA memory issues with MViT
 EPOCHS = 20  # Increased from 10
 LEARNING_RATE = 5e-5  # Reduced for more stable training
 WEIGHT_DECAY = 1e-3  # Increased regularization
-MIXED_PRECISION = True
+MIXED_PRECISION = False  # Disabled to avoid CUBLAS errors with MViT
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Loss balancing

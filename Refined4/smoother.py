@@ -9,8 +9,14 @@ def temporal_smoothing(action_probs_seq, app_probs_seq, window_size=3):
     # Assume probs_seq is list of tensors (num_clips, num_classes)
     # Pad for window
     pad = (window_size - 1) // 2
-    action_probs_padded = F.pad(torch.stack(action_probs_seq), (0, 0, pad, pad), mode='replicate')
-    app_probs_padded = F.pad(torch.stack(app_probs_seq), (0, 0, pad, pad), mode='replicate')
+    
+    # Stack tensors: (num_clips, num_classes)
+    action_probs_stacked = torch.stack(action_probs_seq)  # (T, C)
+    app_probs_stacked = torch.stack(app_probs_seq)  # (T, C)
+    
+    # Pad only the temporal dimension (first dim): (pad, pad) for 2D tensor
+    action_probs_padded = F.pad(action_probs_stacked.unsqueeze(0), (0, 0, pad, pad), mode='replicate').squeeze(0)
+    app_probs_padded = F.pad(app_probs_stacked.unsqueeze(0), (0, 0, pad, pad), mode='replicate').squeeze(0)
     
     smoothed_action_probs = []
     smoothed_app_probs = []

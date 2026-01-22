@@ -1,0 +1,366 @@
+[
+  {
+    "chunk_id": "chunk_000",
+    "action": "user:typing",
+    "action_conf": 0.53,
+    "app": "editor",
+    "app_conf": 0.6
+  },
+  {
+    "chunk_id": "chunk_001",
+    "action": "user:typing",
+    "action_conf": 0.27,
+    "app": "editor",
+    "app_conf": 0.33
+  },
+  {
+    "chunk_id": "chunk_002",
+    "action": "browser:explore_url",
+    "action_conf": 0.25,
+    "app": "dev_resource",
+    "app_conf": 0.13
+  },
+  {
+    "chunk_id": "chunk_003",
+    "action": "browser:explore_url",
+    "action_conf": 0.34,
+    "app": "dev_resource",
+    "app_conf": 0.17
+  },
+  {
+    "chunk_id": "chunk_004",
+    "action": "browser:explore_url",
+    "action_conf": 0.25,
+    "app": "dev_resource",
+    "app_conf": 0.14
+  },
+  {
+    "chunk_id": "chunk_005",
+    "action": "browser:explore_url",
+    "action_conf": 0.36,
+    "app": "dev_resource",
+    "app_conf": 0.24
+  },
+  {
+    "chunk_id": "chunk_006",
+    "action": "browser:explore_url",
+    "action_conf": 0.28,
+    "app": "dev_resource",
+    "app_conf": 0.22
+  },
+  {
+    "chunk_id": "chunk_007",
+    "action": "browser:explore_url",
+    "action_conf": 0.42,
+    "app": "dev_resource",
+    "app_conf": 0.38
+  },
+  {
+    "chunk_id": "chunk_008",
+    "action": "browser:explore_url",
+    "action_conf": 0.39,
+    "app": "dev_resource",
+    "app_conf": 0.42
+  },
+  {
+    "chunk_id": "chunk_009",
+    "action": "browser:explore_url",
+    "action_conf": 0.56,
+    "app": "dev_resource",
+    "app_conf": 0.59
+  },
+  {
+    "chunk_id": "chunk_010",
+    "action": "browser:explore_url",
+    "action_conf": 0.51,
+    "app": "dev_resource",
+    "app_conf": 0.54
+  },
+  {
+    "chunk_id": "chunk_011",
+    "action": "browser:explore_url",
+    "action_conf": 0.33,
+    "app": "dev_resource",
+    "app_conf": 0.37
+  },
+  {
+    "chunk_id": "chunk_012",
+    "action": "browser:explore_url",
+    "action_conf": 0.16,
+    "app": "dev_resource",
+    "app_conf": 0.2
+  },
+  {
+    "chunk_id": "chunk_013",
+    "action": "app:switch",
+    "action_conf": 0.18,
+    "app": "browser",
+    "app_conf": 0.2
+  },
+  {
+    "chunk_id": "chunk_014",
+    "action": "browser:explore_url",
+    "action_conf": 0.26,
+    "app": "dev_resource",
+    "app_conf": 0.28
+  },
+  {
+    "chunk_id": "chunk_015",
+    "action": "browser:explore_url",
+    "action_conf": 0.24,
+    "app": "dev_resource",
+    "app_conf": 0.26
+  },
+  {
+    "chunk_id": "chunk_016",
+    "action": "file:navigate_folder",
+    "action_conf": 0.26,
+    "app": "none",
+    "app_conf": 0.28
+  },
+  {
+    "chunk_id": "chunk_017",
+    "action": "file:navigate_folder",
+    "action_conf": 0.5,
+    "app": "none",
+    "app_conf": 0.49
+  },
+  {
+    "chunk_id": "chunk_018",
+    "action": "file:navigate_folder",
+    "action_conf": 0.74,
+    "app": "none",
+    "app_conf": 0.67
+  },
+  {
+    "chunk_id": "chunk_019",
+    "action": "file:navigate_folder",
+    "action_conf": 0.5,
+    "app": "none",
+    "app_conf": 0.49
+  },
+  {
+    "chunk_id": "chunk_020",
+    "action": "file:navigate_folder",
+    "action_conf": 0.26,
+    "app": "none",
+    "app_conf": 0.28
+  },
+  {
+    "chunk_id": "chunk_021",
+    "action": "user:typing",
+    "action_conf": 0.32,
+    "app": "notepad",
+    "app_conf": 0.3
+  },
+  {
+    "chunk_id": "chunk_022",
+    "action": "user:typing",
+    "action_conf": 0.46,
+    "app": "notepad",
+    "app_conf": 0.35
+  },
+  {
+    "chunk_id": "chunk_023",
+    "action": "user:typing",
+    "action_conf": 0.32,
+    "app": "notepad",
+    "app_conf": 0.25
+  },
+  {
+    "chunk_id": "chunk_024",
+    "action": "app:switch",
+    "action_conf": 0.21,
+    "app": "browser",
+    "app_conf": 0.18
+  },
+  {
+    "chunk_id": "chunk_025",
+    "action": "app:switch",
+    "action_conf": 0.22,
+    "app": "browser",
+    "app_conf": 0.21
+  },
+  {
+    "chunk_id": "chunk_026",
+    "action": "browser:explore_url",
+    "action_conf": 0.17,
+    "app": "browser",
+    "app_conf": 0.17
+  },
+  {
+    "chunk_id": "chunk_027",
+    "action": "browser:explore_url",
+    "action_conf": 0.25,
+    "app": "dev_resource",
+    "app_conf": 0.19
+  },
+  {
+    "chunk_id": "chunk_028",
+    "action": "browser:explore_url",
+    "action_conf": 0.22,
+    "app": "dev_resource",
+    "app_conf": 0.17
+  },
+  {
+    "chunk_id": "chunk_029",
+    "action": "app:switch",
+    "action_conf": 0.13,
+    "app": "browser",
+    "app_conf": 0.18
+  },
+  {
+    "chunk_id": "chunk_030",
+    "action": "browser:explore_url",
+    "action_conf": 0.16,
+    "app": "browser",
+    "app_conf": 0.18
+  },
+  {
+    "chunk_id": "chunk_031",
+    "action": "app:switch",
+    "action_conf": 0.19,
+    "app": "browser",
+    "app_conf": 0.23
+  },
+  {
+    "chunk_id": "chunk_032",
+    "action": "file:navigate_folder",
+    "action_conf": 0.25,
+    "app": "none",
+    "app_conf": 0.33
+  },
+  {
+    "chunk_id": "chunk_033",
+    "action": "file:navigate_folder",
+    "action_conf": 0.26,
+    "app": "none",
+    "app_conf": 0.41
+  },
+  {
+    "chunk_id": "chunk_034",
+    "action": "user:reading",
+    "action_conf": 0.37,
+    "app": "none",
+    "app_conf": 0.52
+  },
+  {
+    "chunk_id": "chunk_035",
+    "action": "user:reading",
+    "action_conf": 0.39,
+    "app": "none",
+    "app_conf": 0.33
+  },
+  {
+    "chunk_id": "chunk_036",
+    "action": "browser:explore_url",
+    "action_conf": 0.27,
+    "app": "video_streaming",
+    "app_conf": 0.25
+  },
+  {
+    "chunk_id": "chunk_037",
+    "action": "browser:explore_url",
+    "action_conf": 0.51,
+    "app": "video_streaming",
+    "app_conf": 0.46
+  },
+  {
+    "chunk_id": "chunk_038",
+    "action": "browser:explore_url",
+    "action_conf": 0.67,
+    "app": "video_streaming",
+    "app_conf": 0.55
+  },
+  {
+    "chunk_id": "chunk_039",
+    "action": "browser:explore_url",
+    "action_conf": 0.68,
+    "app": "video_streaming",
+    "app_conf": 0.54
+  },
+  {
+    "chunk_id": "chunk_040",
+    "action": "browser:explore_url",
+    "action_conf": 0.62,
+    "app": "video_streaming",
+    "app_conf": 0.43
+  },
+  {
+    "chunk_id": "chunk_041",
+    "action": "browser:explore_url",
+    "action_conf": 0.6,
+    "app": "video_streaming",
+    "app_conf": 0.38
+  },
+  {
+    "chunk_id": "chunk_042",
+    "action": "browser:explore_url",
+    "action_conf": 0.51,
+    "app": "dev_resource",
+    "app_conf": 0.23
+  },
+  {
+    "chunk_id": "chunk_043",
+    "action": "browser:explore_url",
+    "action_conf": 0.51,
+    "app": "dev_resource",
+    "app_conf": 0.28
+  },
+  {
+    "chunk_id": "chunk_044",
+    "action": "browser:explore_url",
+    "action_conf": 0.54,
+    "app": "dev_resource",
+    "app_conf": 0.27
+  },
+  {
+    "chunk_id": "chunk_045",
+    "action": "browser:explore_url",
+    "action_conf": 0.48,
+    "app": "dev_resource",
+    "app_conf": 0.2
+  },
+  {
+    "chunk_id": "chunk_046",
+    "action": "browser:explore_url",
+    "action_conf": 0.46,
+    "app": "video_streaming",
+    "app_conf": 0.23
+  },
+  {
+    "chunk_id": "chunk_047",
+    "action": "browser:explore_url",
+    "action_conf": 0.44,
+    "app": "video_streaming",
+    "app_conf": 0.2
+  },
+  {
+    "chunk_id": "chunk_048",
+    "action": "browser:explore_url",
+    "action_conf": 0.51,
+    "app": "dev_resource",
+    "app_conf": 0.23
+  },
+  {
+    "chunk_id": "chunk_049",
+    "action": "browser:explore_url",
+    "action_conf": 0.5,
+    "app": "dev_resource",
+    "app_conf": 0.27
+  },
+  {
+    "chunk_id": "chunk_050",
+    "action": "browser:explore_url",
+    "action_conf": 0.5,
+    "app": "dev_resource",
+    "app_conf": 0.24
+  },
+  {
+    "chunk_id": "chunk_051",
+    "action": "browser:explore_url",
+    "action_conf": 0.5,
+    "app": "video_streaming",
+    "app_conf": 0.24
+  }
+]

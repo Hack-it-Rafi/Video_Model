@@ -12,38 +12,60 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import random
 
-from config import DATA_ROOT
+from config import DATA_ROOT, NUM_FRAMES
 
 class VideoDataset(Dataset):
-    def __init__(self, data_df, root_dir, transform=None, num_frames=16, augment=False):
+    def __init__(self, data_df, root_dir, transform=None, num_frames=NUM_FRAMES, augment=False):
         self.data_df = data_df
         self.root_dir = root_dir
         self.transform = transform
         self.num_frames = num_frames
         self.augment = augment
+        
+        # Filter out missing videos during initialization
+        self.valid_indices = []
+        for idx in range(len(data_df)):
+            row = data_df.iloc[idx]
+            video_path = os.path.join(root_dir, row['video_dir'], 'chunks', row['filename'])
+            if os.path.exists(video_path):
+                self.valid_indices.append(idx)
+            else:
+                print(f"Warning: Video not found: {video_path}")
+        
+        print(f"Dataset initialized: {len(self.valid_indices)}/{len(data_df)} valid videos found")
 
     def __len__(self):
-        return len(self.data_df)
+        return len(self.valid_indices)
 
     def __getitem__(self, idx):
-        row = self.data_df.iloc[idx]
+        # Map to valid index
+        actual_idx = self.valid_indices[idx]
+        row = self.data_df.iloc[actual_idx]
         video_path = os.path.join(self.root_dir, row['video_dir'], 'chunks', row['filename'])
-        video, _, _ = io.read_video(video_path, pts_unit='sec')  # video: (T, H, W, C)
         
-        # Sample exactly num_frames frames uniformly
+        try:
+            video, _, _ = io.read_video(video_path, pts_unit='sec')  # video: (T, H, W, C)
+        except Exception as e:
+            print(f"Error reading video {video_path}: {e}")
+            # Return a zero tensor as fallback
+            video = torch.zeros((self.num_frames, 224, 224, 3))
+        
+        # Sample from 3-second videos (~30 frames) down to num_frames (16 for MViT)
         total_frames = video.shape[0]
         if total_frames >= self.num_frames:
-            # Add temporal jittering during training
-            if self.augment:
-                # Randomly sample a start point within a small range
-                max_start = max(0, total_frames - self.num_frames)
-                start_idx = random.randint(0, min(max_start, 5))  # Small temporal jitter
-                indices = torch.linspace(start_idx, total_frames - 1, self.num_frames).long()
+            # Uniformly sample num_frames from the available frames
+            if self.augment and total_frames > self.num_frames + 2:
+                # Small random offset for temporal augmentation (max 2 frames)
+                max_offset = min(2, total_frames - self.num_frames - 1)
+                start_offset = random.randint(0, max_offset)
+                indices = torch.linspace(start_offset, total_frames - 1 - (max_offset - start_offset), self.num_frames).long()
             else:
+                # Uniform sampling across the entire video duration
                 indices = torch.linspace(0, total_frames - 1, self.num_frames).long()
             video = video[indices]
         else:
-            # Repeat frames if video is too short
+            # Repeat frames if video is too short (shouldn't happen with 3-sec videos)
+            print(f"Warning: Video {video_path} has only {total_frames} frames, expected ~30, sampling to {self.num_frames}")
             repeat_factor = (self.num_frames + total_frames - 1) // total_frames
             video = video.repeat(repeat_factor, 1, 1, 1)[:self.num_frames]
         
