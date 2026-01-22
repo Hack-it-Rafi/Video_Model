@@ -42,6 +42,7 @@ def main(mode='train'):
         outputs = []
         for (vid, chunk), pred in smoothed.items():
             output = {
+                "video_id": vid,  # Added video folder identifier (e.g., videos_001, videos_002)
                 "chunk_id": chunk.replace('.mp4', ''),
                 "action": action_encoder.inverse_transform([pred['action']])[0],
                 "action_conf": round(pred['action_conf'], 2),
@@ -50,9 +51,21 @@ def main(mode='train'):
             }
             outputs.append(output)
         
+        # Sort by video_id and chunk_id for better readability
+        outputs.sort(key=lambda x: (x['video_id'], x['chunk_id']))
+        
         with open('predictions.json', 'w') as f:
             json.dump(outputs, f, indent=2)
         print(f"Saved {len(outputs)} predictions to predictions.json")
+        
+        # Also print summary by video
+        print("\n=== Predictions Summary by Video ===")
+        current_video = None
+        for output in outputs:
+            if output['video_id'] != current_video:
+                current_video = output['video_id']
+                print(f"\n{current_video}:")
+            print(f"  {output['chunk_id']}: {output['action']} ({output['action_conf']}) | {output['app']} ({output['app_conf']})")
 
 if __name__ == '__main__':
     mode = sys.argv[1] if len(sys.argv) > 1 else 'train'
