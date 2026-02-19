@@ -7,7 +7,7 @@ from model import VideoClassifier
 from trainer import train_model
 from evaluator import evaluate
 from smoother import apply_smoothing
-from utils import load_checkpoint
+from utils import load_checkpoint, save_encoders
 import json
 import sys
 
@@ -28,6 +28,8 @@ def main(mode='train'):
     
     if mode == 'train':
         train_model(model, train_loader, test_loader, action_weights, app_weights, train_df, action_encoder, app_encoder)
+        # Save encoders after training
+        save_encoders(action_encoder, app_encoder, 'encoders.pkl')
     
     load_checkpoint(model, 'model.pth')  # Load for eval/infer
     
