@@ -53,7 +53,7 @@ def convert_to_mp4(input_path, output_path):
         return False
 
 def split_video_into_chunks(video_path, output_dir, chunk_duration=3):
-    """Split video into 3-second chunks using ffmpeg"""
+    """Split video into 3-second chunks using ffmpeg - accurate method"""
     os.makedirs(output_dir, exist_ok=True)
     
     try:
@@ -67,20 +67,39 @@ def split_video_into_chunks(video_path, output_dir, chunk_duration=3):
         result = subprocess.run(probe_cmd, capture_output=True, text=True, check=True)
         duration = float(result.stdout.strip())
         
-        # Split video into chunks
-        cmd = [
-            'ffmpeg', '-i', video_path,
-            '-c', 'copy',
-            '-map', '0',
-            '-segment_time', str(chunk_duration),
-            '-f', 'segment',
-            '-reset_timestamps', '1',
-            os.path.join(output_dir, 'chunk_%03d.mp4')
-        ]
-        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(f"Video duration: {duration:.2f} seconds")
         
-        # Count generated chunks
-        chunks = sorted([f for f in os.listdir(output_dir) if f.startswith('chunk_') and f.endswith('.mp4')])
+        # Calculate number of chunks
+        num_chunks = int(duration / chunk_duration) + (1 if duration % chunk_duration > 0 else 0)
+        
+        # Split video into chunks using -ss and -t for accurate splitting
+        chunks = []
+        for i in range(num_chunks):
+            start_time = i * chunk_duration
+            chunk_file = f"chunk_{i:03d}.mp4"
+            output_path = os.path.join(output_dir, chunk_file)
+            
+            # Use -ss (seek) and -t (duration) for accurate chunk extraction
+            cmd = [
+                'ffmpeg',
+                '-ss', str(start_time),  # Start time
+                '-i', video_path,
+                '-t', str(chunk_duration),  # Duration of chunk
+                '-c:v', 'libx264',  # Re-encode video
+                '-preset', 'fast',  # Fast encoding
+                '-c:a', 'aac',  # Audio codec
+                '-avoid_negative_ts', 'make_zero',  # Handle timestamp issues
+                '-y',  # Overwrite output
+                output_path
+            ]
+            
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            
+            # Verify chunk was created
+            if os.path.exists(output_path):
+                chunks.append(chunk_file)
+                # print(f"  Created chunk {i}: {chunk_file} (start: {start_time}s)")
+        
         return chunks, duration
     except subprocess.CalledProcessError as e:
         print(f"Error splitting video: {e.stderr}")
