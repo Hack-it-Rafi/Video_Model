@@ -20,7 +20,7 @@ class VideoClassifier(nn.Module):
         
         # Add dropout and more sophisticated heads
         self.dropout = nn.Dropout(0.3)
-        
+      
         # Action head with intermediate layer
         self.action_head = nn.Sequential(
             nn.Linear(in_features, 512),

@@ -1,0 +1,231 @@
+# Paper Outline — Refined4 End-to-End Pipeline (Video → Action + App)
+
+## Quick facts (project-specific)
+- Input: short **chunk videos** (per original recording `video_id`, segmented into `chunk_id`s).
+- Outputs (per chunk):
+  - `action` label + confidence
+  - `target_app` label + confidence
+- Model type: **multi-task video classification** (shared backbone + two heads).
+- Backbone (exact): **TorchVision `mvit_v1_b`** (Multiscale Vision Transformer) with `pretrained=True` (transfer learning).
+- Temporal post-process: **windowed smoothing** with `WINDOW_SIZE=3`.
+- Key artifacts:
+  - `model.pth` (trained weights)
+  - `encoders.pkl` (label encoders)
+  - `predictions.json` (inference output)
+
+---
+
+## 0. Title (working)
+- Multi-task Video Chunk Classification for Screen-Recorded Workflows: Predicting (Action, Target-App) with a Pretrained MViT Backbone and Temporal Smoothing
+
+## 1. Abstract (write-up checklist)
+Include:
+- Task definition: predict `action` and `target_app` from short screen-recorded video chunks.
+- Pipeline summary: dataset ingestion → leakage-safe split → frame sampling to fixed length → preprocessing/augmentation → pretrained MViT backbone with dual heads → weighted + smoothed loss training → evaluation → inference with temporal smoothing → JSON export.
+- Reportable results: per-task accuracy/macro-F1, qualitative stability of predictions after smoothing.
+
+## 2. Introduction
+### 2.1 Motivation
+- Chunk-level understanding enables workflow analytics, automation, UI testing, and security triage.
+- Screen recordings contain repeated layouts, small UI elements, and subtle temporal changes; chunking helps scale the problem.
+
+### 2.2 Problem Statement
+- Input: a chunk video `x` with varying raw length, decoded and resampled to `NUM_FRAMES` frames.
+- Output: two categorical variables per chunk:
+  - `y_action ∈ {1..K}`
+  - `y_app ∈ {1..M}`
+- Multi-task formulation: a shared representation learns common UI/video features; heads specialize in action vs app.
+
+### 2.3 Main Challenges
+- Class imbalance across both tasks.
+- Leakage risk if chunks from the same recording appear in train and test.
+- Flickering predictions across consecutive chunks even when the activity is stable.
+
+### 2.4 Contributions
+- An end-to-end, reproducible pipeline from raw chunk videos to structured JSON predictions.
+- Leakage-resistant splitting by `video_id`.
+- Transfer learning using a pretrained transformer video backbone (`mvit_v1_b`).
+- Weighted multi-task loss with label smoothing + regularization.
+- Temporal smoothing over chunk sequences to reduce prediction jitter.
+
+## 3. Related Work (brief)
+- Video transformers and multiscale attention (MViT family).
+- Multi-task learning with a shared encoder + multiple classification heads.
+- Temporal post-processing (moving window / majority vote / confidence-weighted smoothing).
+- Imbalanced classification (class reweighting, label smoothing).
+
+## 4. Data & Preprocessing (Refined4: `dataset.py`, `utils.py`)
+### 4.1 Data Layout and Identifiers
+- `DATA_ROOT = Refined4/data`.
+- Multiple subfolders (e.g., `videos_001`, `videos_002`, …) map to distinct `video_id`s.
+- Each `videos_xxx` folder contains:
+  - chunk video files (e.g., `.mp4`)
+  - an `annotations.csv` describing labels per chunk.
+- Required identifiers:
+  - `video_id`: the source recording/session (used for split + smoothing groups).
+  - `chunk_id`: the chunk index within a video (used for ordering and smoothing).
+
+### 4.2 Annotation Ingestion and Cleaning
+- Read each folder’s `annotations.csv`.
+- Normalize column strings (strip whitespace) and handle missing values.
+- Verify that each referenced chunk video exists; skip invalid entries.
+
+### 4.3 Leakage-Safe Train/Test Split
+- Split at the **`video_id`** level.
+- Reason: chunks from the same recording share UI layout and temporal context; splitting by chunk would inflate test performance.
+
+### 4.4 Label Encoding and Persistence
+- Fit encoders for both tasks:
+  - Action encoder: maps action strings → integers.
+  - App encoder: maps app strings → integers.
+- Save to `encoders.pkl`.
+- During inference, load the same encoders to translate prediction indices back to strings.
+
+### 4.5 Video Decode and Fixed-Length Frame Sampling
+- Configure: `NUM_FRAMES = 16` (explicitly chosen to match the backbone’s temporal positional assumptions).
+- Decode a chunk video into frames; then resample to exactly 16 frames:
+  - If the chunk is longer: uniformly sample indices across time (linspace).
+  - If shorter: repeat frames to reach 16.
+
+### 4.6 Spatial Transforms / Normalization
+- Apply standard vision preprocessing:
+  - resizing/cropping for spatial normalization
+  - normalization to model expected ranges
+  - optional augmentation (train only)
+- Output tensor shape prepared for TorchVision video models (commonly `(B, C, T, H, W)` at runtime).
+
+## 5. Model (Refined4: `model.py`, `config.py`)
+### 5.1 Exact Backbone
+- The model uses `torchvision.models.video`:
+  - `MODEL_NAME = 'mvit_v1_b'`
+  - `PRETRAINED = True`
+- Meaning: backbone weights are initialized from TorchVision’s pretrained checkpoint (transfer learning).
+
+### 5.2 Multi-task Heads
+- Original backbone head is removed (replaced with identity).
+- Two heads consume the shared feature embedding:
+  - Action head: Linear → ReLU → Dropout → Linear to `num_action_classes`
+  - App head: Linear → ReLU → Dropout → Linear to `num_app_classes`
+- Additional regularization: backbone embedding dropout (`p=0.3`).
+
+### 5.3 Forward Pass
+- Input: clip tensor `x`.
+- Output: `(action_logits, app_logits)`.
+
+## 6. Training Procedure (Refined4: `trainer.py`, `main.py`, `config.py`)
+### 6.1 Configuration (exact values)
+- `BATCH_SIZE = 2`
+- `EPOCHS = 20`
+- `LEARNING_RATE = 5e-5`
+- `WEIGHT_DECAY = 1e-3`
+- `MIXED_PRECISION = False` (disabled to avoid CUBLAS instability)
+- `DEVICE = 'cuda' if available else 'cpu'`
+- Loss balancing:
+  - `ACTION_LOSS_WEIGHT = 2.0`
+  - `APP_LOSS_WEIGHT = 1.0`
+- Regularization:
+  - `LABEL_SMOOTHING = 0.1`
+  - `MAX_GRAD_NORM = 1.0` (gradient clipping)
+- LR scheduling:
+  - `LR_SCHEDULER = 'cosine'`
+  - `WARMUP_EPOCHS = 2`
+- Early stopping:
+  - `PATIENCE = 5`
+- Determinism:
+  - `SEED = 42`
+
+### 6.2 DataLoaders
+- Train loader uses shuffling; test loader does not.
+- Workers/pinning depend on implementation but follow typical PyTorch practice.
+
+### 6.3 Class Imbalance Handling
+- Compute class weights from the training distribution for both tasks.
+- Use weights in the criterion (per-head) so rare classes contribute more to the gradient.
+
+### 6.4 Loss Definition (multi-task)
+- Compute two classification losses (e.g., cross-entropy with label smoothing):
+  - `L_action = CE(action_logits, y_action, weights=action_weights, label_smoothing=0.1)`
+  - `L_app    = CE(app_logits,    y_app,    weights=app_weights,    label_smoothing=0.1)`
+- Combine:
+  - `L_total = 2.0 * L_action + 1.0 * L_app`
+
+### 6.5 Optimization + Stability
+- Use AdamW-style optimization (commonly used with transformers) with `weight_decay=1e-3`.
+- Clip gradients to `MAX_GRAD_NORM`.
+- Use cosine LR schedule with warmup.
+
+### 6.6 Checkpointing
+- Save trained parameters to `model.pth`.
+- Save encoders to `encoders.pkl`.
+
+## 7. Evaluation (Refined4: `evaluator.py`)
+### 7.1 What to Report
+- Per-task metrics:
+  - Accuracy
+  - Macro-F1 (recommended due to imbalance)
+- Optionally:
+  - confusion matrices
+  - per-class precision/recall
+
+### 7.2 Protocol
+- Load checkpoint from `model.pth`.
+- Evaluate on the video-disjoint test split (no shared `video_id` with training).
+
+## 8. Inference & Temporal Smoothing (Refined4: `main.py`, `smoother.py`)
+### 8.1 Raw Per-chunk Predictions
+For each chunk:
+- Compute logits → probabilities (softmax).
+- Extract:
+  - `pred_action = argmax(p_action)`, `action_conf = max(p_action)`
+  - `pred_app    = argmax(p_app)`,    `app_conf    = max(p_app)`
+- Decode indices back to string labels using `encoders.pkl`.
+
+### 8.2 Temporal Smoothing (exact setting)
+- `WINDOW_SIZE = 3` (±1 neighbor around current chunk).
+- Group predictions by `video_id`, sort by `chunk_id`, then smooth across the sequence.
+- Purpose: reduce label flicker caused by borderline logits at chunk boundaries.
+
+### 8.3 Export Format
+- Write `predictions.json` entries containing:
+  - `video_id`
+  - `chunk_id` (filename normalized, typically without `.mp4`)
+  - `action`, `action_conf`
+  - `app`, `app_conf`
+- Ensure deterministic ordering by sorting `(video_id, chunk_id)`.
+
+## 9. Experiments Section (fill in with your runs)
+### 9.1 Dataset Statistics
+- #videos (`video_id`s)
+- #chunks (total)
+- label distributions and long-tail classes
+
+### 9.2 Ablations
+- Pretrained vs scratch (`PRETRAINED=True/False`).
+- Loss weighting sensitivity (change `ACTION_LOSS_WEIGHT`).
+- With vs without label smoothing (`LABEL_SMOOTHING`).
+- With vs without temporal smoothing (`WINDOW_SIZE=1` vs 3 vs 5).
+- NUM_FRAMES sensitivity (8/16/32).
+
+### 9.3 Qualitative Results
+- Show a timeline of chunk predictions for a single `video_id`:
+  - raw outputs vs smoothed outputs.
+
+## 10. Discussion
+- Expected failure modes:
+  - visually similar app shells
+  - minimal motion clips
+  - transitions between apps/actions within the same chunk
+- Smoothing trade-off: stability vs inertia (delayed reflection of true transitions).
+
+## 11. Limitations
+- Chunk-level independence (no learned temporal model across chunks; smoothing is post-hoc).
+- Dependence on chunking granularity.
+- Potential domain shift: resolution/theme/font scaling.
+
+## 12. Conclusion & Future Work
+- Summarize: pretrained MViT + multi-task heads + imbalance-aware training + smoothing yields a complete pipeline.
+- Future work:
+  - learn a sequence model over chunk embeddings
+  - calibrate confidences
+  - incorporate OCR/UI element cues
+  - active learning for rare actions/apps
