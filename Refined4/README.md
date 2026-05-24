@@ -156,17 +156,6 @@ chunk_001.mp4,scroll,chrome
 chunk_002.mp4,type,vscode
 ```
 
-### Preparing Your Data
-
-If you have full videos instead of chunks:
-
-1. Use the chunking script:
-
-```bash
-python chunk_videos.py --input your_video.mp4 --output data/videos_001/chunks
-```
-
-2. Create annotations manually or use labeling tools
 
 ## Model Training
 
