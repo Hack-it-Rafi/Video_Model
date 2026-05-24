@@ -10,7 +10,6 @@ import torchvision.io as io
 import torchvision.transforms as transforms
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-import random
 
 from config import DATA_ROOT, NUM_FRAMES
 
@@ -50,24 +49,18 @@ class VideoDataset(Dataset):
             # Return a zero tensor as fallback
             video = torch.zeros((self.num_frames, 224, 224, 3))
         
-        # Sample from 3-second videos (~30 frames) down to num_frames (16 for MViT)
+        # Use ALL available frames and pad/trim to num_frames (32) for MViT-v2
         total_frames = video.shape[0]
         if total_frames >= self.num_frames:
-            # Uniformly sample num_frames from the available frames
-            if self.augment and total_frames > self.num_frames + 2:
-                # Small random offset for temporal augmentation (max 2 frames)
-                max_offset = min(2, total_frames - self.num_frames - 1)
-                start_offset = random.randint(0, max_offset)
-                indices = torch.linspace(start_offset, total_frames - 1 - (max_offset - start_offset), self.num_frames).long()
-            else:
-                # Uniform sampling across the entire video duration
-                indices = torch.linspace(0, total_frames - 1, self.num_frames).long()
+            # More frames than needed: uniform subsample to keep temporal spread intact
+            indices = torch.linspace(0, total_frames - 1, self.num_frames).long()
             video = video[indices]
         else:
-            # Repeat frames if video is too short (shouldn't happen with 3-sec videos)
-            print(f"Warning: Video {video_path} has only {total_frames} frames, expected ~30, sampling to {self.num_frames}")
-            repeat_factor = (self.num_frames + total_frames - 1) // total_frames
-            video = video.repeat(repeat_factor, 1, 1, 1)[:self.num_frames]
+            # Fewer frames than needed: repeat-pad to reach num_frames
+            # (for ~30-frame clips padded to 32, this just duplicates the last 2 frames)
+            pad_size = self.num_frames - total_frames
+            last_frame = video[-1:].expand(pad_size, -1, -1, -1)
+            video = torch.cat([video, last_frame], dim=0)
         
         # Convert to float and normalize to [0, 1]
         video = video.float() / 255.0
