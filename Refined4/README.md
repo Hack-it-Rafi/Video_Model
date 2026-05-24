@@ -1,26 +1,28 @@
 # Video Action & App Classification System
 
-A deep learning system for classifying user actions (click, scroll, type, etc.) and target applications (Chrome, VSCode, Excel, etc.) from screen recording videos using a Multiscale Vision Transformer (MViT) model with temporal smoothing.
+A deep learning system for classifying user actions (click, scroll, type, etc.) and target applications (Chrome, VSCode, Excel, etc.) from screen recording videos using a **Multiscale Vision Transformer v2 (MViT-v2 Small)** backbone with temporal smoothing.
 
 ## Architecture
 
 ```
 Input Video (3 seconds, ~30 fps)
     ↓
-Temporal Sampling (16 frames)
+Full-Frame Coverage (all 30 frames → padded to 32)
     ↓
 Spatial Resizing (224×224)
     ↓
-MViT Backbone (Pretrained on Kinetics-400)
+MViT-v2 Small Backbone (Pretrained on Kinetics-400)
     ↓
 Feature Extraction (768-dim)
     ↓
-┌─────────────────┬─────────────────┐
-│   Action Head   │   App Head      │
-│   (512→N)       │   (256→M)       │
-└─────────────────┴─────────────────┘
-    ↓                   ↓
-Action Prediction   App Prediction
+┌─────────────────────┬─────────────────────┐
+│     Action Head     │      App Head        │
+│  Linear(768→512)    │  Linear(768→256)     │
+│  GELU + Dropout     │  GELU + Dropout      │
+│  Linear(512→N)      │  Linear(256→M)       │
+└─────────────────────┴─────────────────────┘
+         ↓                      ↓
+  Action Prediction        App Prediction
 ```
 
 ## Prerequisites
@@ -29,8 +31,9 @@ Action Prediction   App Prediction
 
 - **Python**: 3.8+ (tested with 3.13)
 - **GPU**: NVIDIA GPU with CUDA support (recommended)
-  - Minimum 8GB VRAM for batch_size=2
-  - CPU training is possible but slower
+  - Recommended 16GB+ VRAM for batch_size=4 with MViT-v2 + 32 frames
+  - Mixed-precision (AMP) is enabled by default to reduce memory usage
+  - CPU training is possible but very slow
 - **RAM**: 16GB+ recommended
 - **Storage**: 10GB+ for model cache and datasets
 
@@ -178,8 +181,8 @@ This will:
 1. Load and preprocess the dataset
 2. Split data into train/test sets (80/20 by video ID)
 3. Compute class weights for imbalanced data
-4. Train the MViT model for 20 epochs
-5. Save the best model to `model.pth`
+4. Train the MViT-v2 Small model for up to 30 epochs (with early stopping)
+5. Save the best model checkpoint to `model.pth`
 6. Save label encoders to `encoders.pkl`
 
 ### Training Configuration
@@ -187,10 +190,13 @@ This will:
 Edit `config.py` to customize training:
 
 ```python
-BATCH_SIZE = 2           # Reduce if running out of memory
-EPOCHS = 20              # Number of training epochs
-LEARNING_RATE = 5e-5     # Learning rate
+NUM_FRAMES = 32          # Full video coverage (30 real frames + 2 padding)
+MODEL_NAME = 'mvit_v2_s' # MViT-v2 Small backbone
+BATCH_SIZE = 4           # Reduce if running out of VRAM
+EPOCHS = 30              # Number of training epochs
+LEARNING_RATE = 3e-5     # Fine-tuning LR for large transformer
 WEIGHT_DECAY = 1e-3      # L2 regularization
+MIXED_PRECISION = True   # AMP for faster training and lower memory
 PATIENCE = 5             # Early stopping patience
 ```
 
@@ -206,10 +212,11 @@ During training, you'll see:
 Example output:
 
 ```
-Epoch 1/20: 100%|████████| 50/50 [02:15<00:00]
-Train Loss: 2.456 | Val Loss: 2.123
-Val Action Acc: 0.456 | Val App Acc: 0.678
-Best model saved!
+Epoch 1/30 (LR: 0.000015)
+  Batch [20/50] - Loss: 2.4561, Action: 1.8234, App: 0.6327
+Train Loss: 2.3821 (Action: 1.7902, App: 0.5919)
+Validation - Action: Acc=0.4560, F1=0.4231 | App: Acc=0.6780, F1=0.6512
+✓ Saved best model (Combined F1: 0.5372)
 ```
 
 ### Monitoring Training
@@ -431,7 +438,7 @@ Refined4/
 ├── config.py                    # Configuration settings
 ├── main.py                      # Main entry point (train/eval/infer)
 ├── dataset.py                   # Dataset and data loading
-├── model.py                     # MViT-based classifier
+├── model.py                     # MViT-v2-based dual-head classifier
 ├── trainer.py                   # Training loop
 ├── evaluator.py                 # Evaluation metrics
 ├── smoother.py                  # Temporal smoothing
